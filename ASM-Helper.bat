@@ -60,18 +60,17 @@ For more information, please refer to <http://unlicense.org>
 :EndComments
 
 
-CALL :CurrentTime
-
-:: Program locations --==## START
+:: Program locations ##==-- START
 :: HIEW
 SET ASM.1="%USERPROFILE%\Desktop\lab files\hiew\hiew.exe"
 
 :: dump
 SET ASM.2=
 
-:: Program locations --==## END
+:: Program locations ##==-- END
 
-:: File Extract --==## START
+:: Main ##==-- START
+
 :: Parse file into sections to work with
 SET _dragIN=%1
 IF NOT DEFINED _dragIN (
@@ -83,7 +82,16 @@ FOR %%? IN (%_dragIN%) DO (
 )
 SET TGT.SRC="%TGT.path%\%TGT.name%"
 
-:: File Extract --==## END
+:: Function DragIN --==## END
+
+:: Grag current time
+CALL :CurrentTime
+
+:: Create Play ground
+CALL :WorkingDir PlayGround
+
+:: Main ##==-- END
+
 
 CALL :TIMEOUT 3
 
@@ -91,15 +99,32 @@ GOTO :EOF
 
 :: Functions ##==-- START ------------------------------------------------------
 
+:: Function Workingdir ##==--------------------------------------------------------
+:Workingdir
+:: Set the working directory to play in
+SET DIR.BASE=%USERPROFILE%\Desktop\%~1\%myTime%-%TGT.name%
+MKDIR "%DIR.BASE%"
+PUSHD "%DIR.BASE%"
+SET /P M=Creating playground copies of %TGT.name%... <NUL
+FOR %%? IN (ORIG PLAY) DO ( 
+    COPY %TGT.SRC% %%?-%TGT.name% >NUL
+)
+ECHO DONE
+EXIT /B
+
+:: Function TIMEOUT ##==--------------------------------------------------------
 :TIMEOUT
 ::Because Windows XP doesn't have the "timeout /T 2" command. Meh
 SETLOCAL
+
 PING -n %1 127.0.0.1 >NUL
+
 EXIT /B
 
+:: function CurrentTime ##==----------------------------------------------------
 :CurrentTime
 :: Set Global variable myTime
-:: Lets home that we always have 24H clock
+:: Lets hope that we always have 24H clock
 
 :: SET SET D.Full=%DATE:~10%%DATE:~7,2%%DATE:~4,2%
 :: Pull date from "builtin date variable"
@@ -115,10 +140,11 @@ SET T.S=%TIME:~6,2%
 
 :: Set time based on the above
 :: SET myTime=%D.Full%-%T.Full%
-SET myTime=%D.Y%%D.M%%D.D%-%T.H%%T.M%.%T.S%
+SET myTime=%D.Y%%D.M%%D.D%-%T.H: =0%%T.M%.%T.S%
 
 EXIT /B
 
+:: Function Syntax ##==---------------------------------------------------------
 :Syntax
 ECHO Empty Target
 ECHO Please drag file on top of this batch file
