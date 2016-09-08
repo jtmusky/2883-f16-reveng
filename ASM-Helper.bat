@@ -8,6 +8,7 @@
 @ECHO OFF
 SETLOCAL
 TITLE ASM Decompiler Helper
+MODE CON COLS=80 LINES=25
 GOTO :EndComments
 
 Revision:   00.00.01 20160907 - JM: Initial Version
@@ -65,7 +66,8 @@ For more information, please refer to <http://unlicense.org>
 SET ASM.1="%USERPROFILE%\Desktop\lab files\hiew\hiew.exe"
 
 :: dump
-SET ASM.2=
+::SET ASM.2="%ProgramFiles%\Microsoft Visual Studio .NET 2003\Vc7\bin\dumpbin.exe"
+SET ASM.2="%ProgramFiles%\Microsoft Visual Studio .NET 2003\Common7\IDE\dumpbin.exe"
 
 :: Program locations ##==-- END
 
@@ -90,14 +92,57 @@ CALL :CurrentTime
 :: Create Play ground
 CALL :WorkingDir PlayGround
 
+
+:: Menu Loop ##==-- START
+:MLoop.1
+SET userChoice=
+CLS
+ECHO Detected File: %TGT.name%
+ECHO PlayGround:    \Desktop\PlayGround\%myTime%-%TGT.name%
+ECHO.
+ECHO Directory Contents:
+DIR /B
+ECHO.
+ECHO 1).....Start HIEW Tool
+ECHO.
+ECHO 2).....Start dumpbin
+ECHO.
+ECHO Anything else to quit
+ECHO.
+
+SET /P userChoice=Choose: 
+
+IF "%userChoice%" == "1" GOTO :TOOL.HIEW
+IF "%userChoice%" == "2" GOTO :TOOL.dumpbin
+:: IF /I "%userChoice" == "Q" GOTO :EOF
+
+
+:: Menu Loop ##==-- END
 :: Main ##==-- END
 
-
-CALL :TIMEOUT 3
-
+START .
 GOTO :EOF
 
 :: Functions ##==-- START ------------------------------------------------------
+:TOOL.HIEW
+
+FOR %%? IN (PLAY-%TGT.name%) DO SET TGT.sname=%%~s?
+%ASM.1% %TGT.sname%
+
+GOTO :MLoop.1
+
+:TOOL.dumpbin
+
+IF NOT DEFINED VS71COMNTOOLS (
+    "C:\Program Files\Microsoft Visual Studio .NET 2003\VC7\bin\vcvars32.bat"
+)
+
+FOR %%? IN (data idata rdata) DO (
+    %ASM.2% /RAWDATA:BYTES /SECTION:.%%? PLAY-%TGT.name% > %%?section.txt
+)
+
+GOTO :MLoop.1
+
 
 :: Function Workingdir ##==--------------------------------------------------------
 :Workingdir
@@ -110,6 +155,7 @@ FOR %%? IN (ORIG PLAY) DO (
     COPY %TGT.SRC% %%?-%TGT.name% >NUL
 )
 ECHO DONE
+CALL :TIMEOUT 3
 EXIT /B
 
 :: Function TIMEOUT ##==--------------------------------------------------------
@@ -146,8 +192,12 @@ EXIT /B
 
 :: Function Syntax ##==---------------------------------------------------------
 :Syntax
-ECHO Empty Target
-ECHO Please drag file on top of this batch file
-CALL :TIMEOUT 3
+COLOR C
+TITLE ASM Decompiler Helper: No File
+CLS
+ECHO.
+ECHO    Empty Target
+ECHO            Please drag file on top of this batch file
+CALL :TIMEOUT 6
 
 :: Functions ##==-- END
