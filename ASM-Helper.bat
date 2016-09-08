@@ -59,10 +59,8 @@ For more information, please refer to <http://unlicense.org>
 
 :EndComments
 
+
 CALL :CurrentTime
-ECHO %myTime%
-PAUSE
-GOTO :EOF
 
 :: Program locations --==## START
 :: HIEW
@@ -73,24 +71,19 @@ SET ASM.2=
 
 :: Program locations --==## END
 
-:: 
-SET _myTGT=%1
-IF NOT DEFINED _myTGT (
+:: File Extract --==## START
+:: Parse file into sections to work with
+SET _dragIN=%1
+IF NOT DEFINED _dragIN (
     GOTO :Syntax
 )
-FOR %%? IN (%_myTGT%) DO (
-    ECHO file=%%~?
-    ECHO filedrive=%%~d?
-    ECHO filepath=%%~p?
-    ECHO filename=%%~n?
-    ECHO fileextension=%%~x?
+FOR %%? IN (%_dragIN%) DO (
+    SET TGT.path=%%~dp?
+    SET TGT.name=%%~nx?
 )
-PAUSE
+SET TGT.SRC="%TGT.path%\%TGT.name%"
 
-ECHO %_myTGT%
-PAUSE
-DIR /B %_myTGT%
-PAUSE
+:: File Extract --==## END
 
 CALL :TIMEOUT 3
 
