@@ -59,6 +59,11 @@ For more information, please refer to <http://unlicense.org>
 
 :EndComments
 
+CALL :CurrentTime
+ECHO %myTime%
+PAUSE
+GOTO :EOF
+
 :: Program locations --==## START
 :: HIEW
 SET ASM.1="%USERPROFILE%\Desktop\lab files\hiew\hiew.exe"
@@ -91,13 +96,39 @@ CALL :TIMEOUT 3
 
 GOTO :EOF
 
+:: Functions ##==-- START ------------------------------------------------------
+
 :TIMEOUT
 ::Because Windows XP doesn't have the "timeout /T 2" command. Meh
 SETLOCAL
 PING -n %1 127.0.0.1 >NUL
 EXIT /B
 
+:CurrentTime
+:: Set Global variable myTime
+:: Lets home that we always have 24H clock
+
+:: SET SET D.Full=%DATE:~10%%DATE:~7,2%%DATE:~4,2%
+:: Pull date from "builtin date variable"
+SET D.Y=%DATE:~10%
+SET D.M=%DATE:~7,2%
+SET D.D=%DATE:~4,2%
+
+:: SET T.Full=%TIME:~0,2%%TIME:~3,2%.%TIME:~6,2%
+:: Pull time from "builtin time variable"
+SET T.H=%TIME:~0,2%
+SET T.M=%TIME:~3,2%
+SET T.S=%TIME:~6,2%
+
+:: Set time based on the above
+:: SET myTime=%D.Full%-%T.Full%
+SET myTime=%D.Y%%D.M%%D.D%-%T.H%%T.M%.%T.S%
+
+EXIT /B
+
 :Syntax
 ECHO Empty Target
 ECHO Please drag file on top of this batch file
 CALL :TIMEOUT 3
+
+:: Functions ##==-- END
