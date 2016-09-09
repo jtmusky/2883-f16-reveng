@@ -6,7 +6,7 @@
 ::Revision  00.00.01 20160513
 
 @ECHO OFF
-SETLOCAL
+SETLOCAL EnableDelayedExpansion
 TITLE ASM Decompiler Helper
 MODE CON COLS=80 LINES=25
 GOTO :EndComments
@@ -73,11 +73,30 @@ SET ASM.2="%ProgramFiles%\Microsoft Visual Studio .NET 2003\Common7\IDE\dumpbin.
 
 :: Main ##==-- START
 
+:: Sanity Check ##==-- START
+:: Super complicated way of checking if tools exists
+:: Probably should of just used EnableDelayedExpansions
+FOR /L %%? IN (1,1,2) DO (
+    IF NOT EXIST !ASM.%%?! (
+        CALL :Syntax "Unable to Found tools" !ASM.%%?!
+        GOTO :EOF
+    )
+)
+:: Sanity Check ##==-- END
+
+
 :: Parse file into sections to work with
 SET _dragIN=%1
 IF NOT DEFINED _dragIN (
-    GOTO :Syntax
+    CALL :Syntax "Unable to detect file"
+    GOTO :EOF
 )
+CALL :WhatAmI %_dragIN%
+IF ERRORLEVEL 1 (
+    CALL :Syntax "Target is a Dir, Not Yet supported"
+    GOTO :EOF
+)
+
 FOR %%? IN (%_dragIN%) DO (
     SET TGT.path=%%~dp?
     SET TGT.name=%%~nx?
@@ -103,17 +122,17 @@ ECHO.
 ECHO Directory Contents:
 DIR /B
 ECHO.
-ECHO 1).....Start HIEW Tool
+ECHO 1).....Start dumpbin
 ECHO.
-ECHO 2).....Start dumpbin
+ECHO 2).....Start HIEW Tool
 ECHO.
 ECHO Anything else to quit
 ECHO.
 
 SET /P userChoice=Choose: 
 
-IF "%userChoice%" == "1" GOTO :TOOL.HIEW
-IF "%userChoice%" == "2" GOTO :TOOL.dumpbin
+IF "%userChoice%" == "1" GOTO :TOOL.dumpbin
+IF "%userChoice%" == "2" GOTO :TOOL.HIEW
 :: IF /I "%userChoice" == "Q" GOTO :EOF
 
 
@@ -138,7 +157,7 @@ IF NOT DEFINED VS71COMNTOOLS (
 )
 
 FOR %%? IN (data idata rdata) DO (
-    %ASM.2% /RAWDATA:BYTES /SECTION:.%%? PLAY-%TGT.name% > %%?section.txt
+    %ASM.2% /RAWDATA:BYTES /SECTION:.%%? PLAY-%TGT.name% > %TGT.name%-%%?.txt
 )
 
 GOTO :MLoop.1
@@ -156,6 +175,12 @@ FOR %%? IN (ORIG PLAY) DO (
 )
 ECHO DONE
 CALL :TIMEOUT 3
+EXIT /B
+
+
+:: Function WhatAmI ##==--------------------------------------------------------
+:WhatAmI
+DIR /B /A:-D %1 >NUL
 EXIT /B
 
 :: Function TIMEOUT ##==--------------------------------------------------------
@@ -193,11 +218,16 @@ EXIT /B
 :: Function Syntax ##==---------------------------------------------------------
 :Syntax
 COLOR C
-TITLE ASM Decompiler Helper: No File
+SET MSG1=%~1
+SET MSG2=%~2
+TITLE ASM Decompiler Helper ERROR: %~1
 CLS
 ECHO.
-ECHO    Empty Target
-ECHO            Please drag file on top of this batch file
-CALL :TIMEOUT 6
+ECHO    Something went wrong! 
+IF DEFINED MSG1 ECHO    %~1
+IF DEFINED MSG2 ECHO    %~2
+ECHO.
+ECHO    USAGE:  Please drag file on top of this batch file
+PAUSE >NUL
 
 :: Functions ##==-- END
