@@ -6,8 +6,9 @@
 ::Revision  00.00.01 20160513
 
 @ECHO OFF
-SETLOCAL
+SETLOCAL EnableDelayedExpansion
 TITLE ASM Decompiler Helper
+MODE CON COLS=80 LINES=25
 GOTO :EndComments
 
 Revision:   00.00.01 20160907 - JM: Initial Version
@@ -60,46 +61,142 @@ For more information, please refer to <http://unlicense.org>
 :EndComments
 
 
-CALL :CurrentTime
-
-:: Program locations --==## START
+:: Program locations ##==-- START
 :: HIEW
 SET ASM.1="%USERPROFILE%\Desktop\lab files\hiew\hiew.exe"
 
 :: dump
-SET ASM.2=
+::SET ASM.2="%ProgramFiles%\Microsoft Visual Studio .NET 2003\Vc7\bin\dumpbin.exe"
+SET ASM.2="%ProgramFiles%\Microsoft Visual Studio .NET 2003\Common7\IDE\dumpbin.exe"
 
-:: Program locations --==## END
+:: Program locations ##==-- END
 
-:: File Extract --==## START
+:: Main ##==-- START
+
+:: Sanity Check ##==-- START
+:: Super complicated way of checking if tools exists
+:: Probably should of just used EnableDelayedExpansions
+FOR /L %%? IN (1,1,2) DO (
+    IF NOT EXIST !ASM.%%?! (
+        CALL :Syntax "Unable to Found tools" !ASM.%%?!
+        GOTO :EOF
+    )
+)
+:: Sanity Check ##==-- END
+
+
 :: Parse file into sections to work with
 SET _dragIN=%1
 IF NOT DEFINED _dragIN (
-    GOTO :Syntax
+    CALL :Syntax "Unable to detect file"
+    GOTO :EOF
 )
+CALL :WhatAmI %_dragIN%
+IF %isDir% EQU 1 (
+    CALL :Syntax "Target is a Dir, Not Yet supported"
+    GOTO :EOF
+)
+
 FOR %%? IN (%_dragIN%) DO (
     SET TGT.path=%%~dp?
     SET TGT.name=%%~nx?
 )
 SET TGT.SRC="%TGT.path%\%TGT.name%"
 
-:: File Extract --==## END
+:: Function DragIN --==## END
 
-CALL :TIMEOUT 3
+:: Grag current time
+CALL :CurrentTime
 
+:: Create Play ground
+CALL :WorkingDir PlayGround
+
+
+:: Menu Loop ##==-- START
+:MLoop.1
+SET userChoice=
+CLS
+ECHO Detected File: %TGT.name%
+ECHO PlayGround:    \Desktop\PlayGround\%myTime%-%TGT.name%
+ECHO.
+ECHO Directory Contents:
+DIR /B
+ECHO.
+ECHO 1).....Start dumpbin
+ECHO.
+ECHO 2).....Start HIEW Tool
+ECHO.
+ECHO Anything else to quit
+ECHO.
+
+SET /P userChoice=Choose: 
+
+IF "%userChoice%" == "1" GOTO :TOOL.dumpbin
+IF "%userChoice%" == "2" GOTO :TOOL.HIEW
+:: IF /I "%userChoice" == "Q" GOTO :EOF
+
+
+:: Menu Loop ##==-- END
+:: Main ##==-- END
+
+START .
 GOTO :EOF
 
 :: Functions ##==-- START ------------------------------------------------------
+:TOOL.HIEW
 
+FOR %%? IN (PLAY-%TGT.name%) DO SET TGT.sname=%%~s?
+%ASM.1% %TGT.sname%
+
+GOTO :MLoop.1
+
+:TOOL.dumpbin
+
+IF NOT DEFINED VS71COMNTOOLS (
+    "C:\Program Files\Microsoft Visual Studio .NET 2003\VC7\bin\vcvars32.bat"
+)
+
+FOR %%? IN (data idata rdata) DO (
+    %ASM.2% /RAWDATA:BYTES /SECTION:.%%? PLAY-%TGT.name% > %TGT.name%-%%?.txt
+)
+
+GOTO :MLoop.1
+
+
+:: Function Workingdir ##==--------------------------------------------------------
+:Workingdir
+:: Set the working directory to play in
+SET DIR.BASE=%USERPROFILE%\Desktop\%~1\%myTime%-%TGT.name%
+MKDIR "%DIR.BASE%"
+PUSHD "%DIR.BASE%"
+SET /P M=Creating playground copies of %TGT.name%... <NUL
+FOR %%? IN (ORIG PLAY) DO ( 
+    COPY %TGT.SRC% %%?-%TGT.name% >NUL
+)
+ECHO DONE
+CALL :TIMEOUT 3
+EXIT /B
+
+
+:: Function WhatAmI ##==--------------------------------------------------------
+:: Takes argument and converts to 8.3 format. Needed if file has spaces
+:WhatAmI
+FOR %%i IN (%1) DO IF EXIST %%~si\NUL SET isDir=1
+EXIT /B
+
+:: Function TIMEOUT ##==--------------------------------------------------------
 :TIMEOUT
 ::Because Windows XP doesn't have the "timeout /T 2" command. Meh
 SETLOCAL
+
 PING -n %1 127.0.0.1 >NUL
+
 EXIT /B
 
+:: function CurrentTime ##==----------------------------------------------------
 :CurrentTime
 :: Set Global variable myTime
-:: Lets home that we always have 24H clock
+:: Lets hope that we always have 24H clock
 
 :: SET SET D.Full=%DATE:~10%%DATE:~7,2%%DATE:~4,2%
 :: Pull date from "builtin date variable"
@@ -115,13 +212,23 @@ SET T.S=%TIME:~6,2%
 
 :: Set time based on the above
 :: SET myTime=%D.Full%-%T.Full%
-SET myTime=%D.Y%%D.M%%D.D%-%T.H%%T.M%.%T.S%
+SET myTime=%D.Y%%D.M%%D.D%-%T.H: =0%%T.M%.%T.S%
 
 EXIT /B
 
+:: Function Syntax ##==---------------------------------------------------------
 :Syntax
-ECHO Empty Target
-ECHO Please drag file on top of this batch file
-CALL :TIMEOUT 3
+COLOR C
+SET MSG1=%~1
+SET MSG2=%~2
+TITLE ASM Decompiler Helper ERROR: %~1
+CLS
+ECHO.
+ECHO    Something went wrong! 
+IF DEFINED MSG1 ECHO    %~1
+IF DEFINED MSG2 ECHO    %~2
+ECHO.
+ECHO    USAGE:  Please drag file on top of this batch file
+PAUSE >NUL
 
 :: Functions ##==-- END
