@@ -92,7 +92,7 @@ IF NOT DEFINED _dragIN (
     GOTO :EOF
 )
 CALL :WhatAmI %_dragIN%
-IF ERRORLEVEL 1 (
+IF %isDir% EQU 1 (
     CALL :Syntax "Target is a Dir, Not Yet supported"
     GOTO :EOF
 )
@@ -179,8 +179,9 @@ EXIT /B
 
 
 :: Function WhatAmI ##==--------------------------------------------------------
+:: Takes argument and converts to 8.3 format. Needed if file has spaces
 :WhatAmI
-DIR /B /A:-D %1 >NUL
+FOR %%i IN (%1) DO IF EXIST %%~si\NUL SET isDir=1
 EXIT /B
 
 :: Function TIMEOUT ##==--------------------------------------------------------
